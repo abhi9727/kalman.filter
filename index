@@ -1,0 +1,135 @@
+import matplotlib.pyplot as plt
+import pylab
+import csv
+import pandas as pd
+import numpy as np
+
+
+def Read_Four_Column_File(file_name):
+    with open(file_name, 'r') as f_input:
+        csv_input = csv.reader(f_input, delimiter=',', skipinitialspace=True)
+        x = []
+        y = []
+        vx = []
+        vy = []
+        i=0
+        for cols in csv_input:
+            if(i>0):
+                x.append(float(cols[0]))
+                y.append(float(cols[1]))
+                vx.append(float(cols[2]))
+                vy.append(float(cols[3]))
+            i+=1
+    return x, y, vx, vy, i
+x, y, vx, vy, i = Read_Four_Column_File('kalmann.txt')
+x[:]
+y[:]
+vx[:]
+vy[:]
+
+def kalmanFilter2DXV(x, y, vx, vy, i):
+    
+    # time array for plotting data vs time    
+    t = [it for it in range(1, i)]
+
+    # integral of vx and vy for plotting vs time
+    ivx=[]
+    ivy=[]
+    svx=0
+    svy=0
+    for it in range(i-1):
+       svx+=vx[it]
+       svy+=vy[it]
+       ivx.append(svx-100) 
+       ivy.append(svy-100)
+    
+    # Kalman filter
+    A = [[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]]
+    X = [x[0], y[0], vx[0], vy[0]]
+    I = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
+    varx=np.var(x)
+    vary=np.var(y)
+    varvx=np.var(vx)
+    varvy=np.var(vy)
+    P=[[varx**2, 0, 0, 0], [0, vary**2, 0, 0], [0, 0, varvx**2, 0], [0, 0, 0, varvy**2]]
+    R=P
+    x_kal = []
+    y_kal = []
+    vx_kal = []
+    vy_kal = []
+    for it in range(1, i-1):
+        X_kp = np.matmul(A, X)
+        P_kp = np.matmul(np.matmul(A, P), np.transpose(A))
+        P_kp[0][1] = 0; P_kp[0][2] = 0; P_kp[0][3] = 0;
+        P_kp[1][0] = 0; P_kp[1][2] = 0; P_kp[1][3] = 0;
+        P_kp[2][0] = 0; P_kp[2][1] = 0; P_kp[2][3] = 0;
+        P_kp[3][0] = 0; P_kp[3][1] = 0; P_kp[3][2] = 0;
+        K = [[0.5, 0, 0, 0], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [0, 0, 0, 0.5]]
+        X_km = [x[it], y[it], vx[it], vy[it]]
+        X = np.matmul(np.subtract(I, K), X_kp) + np.matmul(K, X_km)
+        P = np.matmul(np.subtract(I, K), P_kp)
+        P[0][1] = 0; P[0][2] = 0; P[0][3] = 0;
+        P[1][0] = 0; P[1][2] = 0; P[1][3] = 0;
+        P[2][0] = 0; P[2][1] = 0; P[2][3] = 0;
+        P[3][0] = 0; P[3][1] = 0; P[3][2] = 0;
+        x_kal.append(X[0]-50)
+        y_kal.append(X[1]-50)
+        vx_kal.append(X[2]-2)
+        vy_kal.append(X[3]-2)
+        
+    return x_kal, y_kal, vx_kal, vy_kal
+  
+    
+x_kal, y_kal, vx_kal, vy_kal = kalmanFilter2DXV(x, y, vx, vy, i)
+x_kal1, y_kal1, vx_kal1, vy_kal1 = kalmanFilter2DXV(x_kal, y_kal, vx_kal, vy_kal, i-1)
+
+c=t.pop()
+b=t.pop()
+plt.plot(t, x_kal1)
+t.append(b)
+t.append(c)
+a=t.pop()   
+plt.plot(t,x_kal)
+t.append(a)
+plt.plot(t,x)
+# plt.plot(t,ivx)
+plt.show()
+c=t.pop()
+b=t.pop()
+plt.plot(t, y_kal1)
+t.append(b)
+t.append(c)
+a=t.pop()
+plt.plot(t,y_kal)
+t.append(a)
+plt.plot(t,y)
+# plt.plot(t,ivy)
+plt.show()
+
+c=t.pop()
+b=t.pop()
+plt.plot(t, vx_kal1)
+t.append(b)
+t.append(c)
+a=t.pop()   
+plt.plot(t, vx_kal)
+t.append(a)
+plt.plot(t,vx)
+plt.show()
+c=t.pop()
+b=t.pop()
+plt.plot(t, vy_kal1)
+t.append(b)
+t.append(c)
+a=t.pop()
+plt.plot(t,vy_kal)
+t.append(a)
+plt.plot(t,vy)
+plt.show()
+
+plt.plot(x, y)
+plt.show()
+plt.plot(x_kal, y_kal)
+plt.show()
+plt.plot(x_kal1, y_kal1)
+plt.show()
